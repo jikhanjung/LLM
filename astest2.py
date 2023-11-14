@@ -68,15 +68,23 @@ class PaleoRA(cmd.Cmd):
     def do_showmsg(self, arg):
         'Show AI agent messages'
         print("ID:", self.thread.id)
-        messages = client.beta.threads.messages.list(self.thread.id)
-        for message in messages.data:
-            print(message)
+        messages = client.beta.threads.messages.list(thread_id=self.thread.id, order='asc')
+        while len(messages.data) > 0:
+            for message in messages.data:
+                print('\n-----',message.id,'-----')
+                for c in message.content:
+                    print(message.role + ">", c.text.value)
+                last_id = message.id
+            messages = client.beta.threads.messages.list(thread_id=self.thread.id, order='asc',after=last_id)
+
+                #print(message)
 
     def do_sendmsg(self, arg):
         'Send message to AI agent'
         print("sending message:", arg)
         message = client.beta.threads.messages.create(
             thread_id=self.thread.id,
+            assistant_id=self.asst.id,
             role="user",
             content=arg,
         )
