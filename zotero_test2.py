@@ -21,19 +21,19 @@ class ZWrapper():
         return self.zot.collection(collection_id)
     
     def build_tree(self):
-        self._zcollection_list = self.zot.all_collections()
-        for collection in self._zcollection_list:
+        self._collection_list = self.zot.all_collections()
+        for collection in self._collection_list:
             zcol = ZCollection(self.zot, collection)
             self._zcollection_list.append(zcol)
             self._key_list.append(collection['data']['key'])
 
         for zcol in self._zcollection_list:
-            if 'parentCollection' in zcol['data'] and zcol['data']['parentCollection'] == False:
+            if 'parentCollection' in zcol._collection['data'] and zcol._collection['data']['parentCollection'] == False:
                 self._zcollection_tree.append(zcol)
                 #print(collection['data']['name'], collection['data']['parentCollection'])
             else:
                 for parent in self._zcollection_list:
-                    if parent['data']['key'] == zcol['data']['parentCollection']:
+                    if parent._collection['data']['key'] == zcol._collection['data']['parentCollection']:
                         parent.addChild(zcol)
                         #print(collection['data']['name'], collection['data']['parentCollection'])
                         break
@@ -46,7 +46,7 @@ class ZWrapper():
             self.print_tree_helper(zcol, 0)
     
     def print_tree_helper(self, zcol, level):
-        print(" "*level, zcol['data']['name'])
+        print(" "*level, zcol._collection['data']['name'])
         for child in zcol.children:
             self.print_tree_helper(child, level+1)
 
