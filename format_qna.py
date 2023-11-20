@@ -12,8 +12,10 @@ def extract_qa_pairs(text):
     a_pattern_1 = r'Q:.*?\n\s*A: (.*?)\n\n'
     q_pattern_2 = r'\d+\.\s+(.*?)\n\s+-'
     a_pattern_2 = r'\d+\.\s+.*?\n\s+-\s*(.*?)\n\n'
-    q_pattern_3 = r'\d+\.\s+(.*?)\n\s+'
-    a_pattern_3 = r'\d+\.\s+.*?\n\s+(.*?)\n\n'
+    q_pattern_3 = r'\d+\.\s+(.*?)\n\s*A:'
+    a_pattern_3 = r'\d+\.\s+.*?\n\s*A: (.*?)\n\n'
+    q_pattern_4 = r'\d+\.\s+(.*?)\n\s+'
+    a_pattern_4 = r'\d+\.\s+.*?\n\s+(.*?)\n\n'
 
     # Extract questions and answers based on the three formats
     qa_pairs = []
@@ -23,6 +25,8 @@ def extract_qa_pairs(text):
     answers_2 = re.findall(a_pattern_2, text, re.DOTALL)
     questions_3 = re.findall(q_pattern_3, text, re.DOTALL)
     answers_3 = re.findall(a_pattern_3, text, re.DOTALL)
+    questions_4 = re.findall(q_pattern_4, text, re.DOTALL)
+    answers_4 = re.findall(a_pattern_4, text, re.DOTALL)
 
     # show length of each list
     '''print(len(questions_1),len(answers_1),len(questions_2),len(answers_2),len(questions_3),len(answers_3))
@@ -41,6 +45,8 @@ def extract_qa_pairs(text):
         qa_pairs.extend(zip(questions_2, answers_2))
         if len(questions_2) == 0:
             qa_pairs.extend(zip(questions_3, answers_3))
+            if len(questions_3) == 0:
+                qa_pairs.extend(zip(questions_4, answers_4))
 
     # Remove any trailing whitespaces
     qa_pairs = [(q.strip(), a.strip()) for q, a in qa_pairs]
