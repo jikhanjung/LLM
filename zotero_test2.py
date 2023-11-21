@@ -17,11 +17,15 @@ class ZWrapper():
         self._zcollection_tree = []
 
     def get_collection(self, collection_id):
-        collection = self.zot.collection(collection_id)
-        return self.zot.collection(collection_id)
+        for zcol in self._zcollection_list:
+            if zcol._collection['data']['key'] == collection_id:
+                return zcol
+        return None
     
     def build_tree(self):
-        self._collection_list = self.zot.all_collections()
+        collection = self.zot.collection('M5EN26AJ')
+        self._collection_list.append(collection)
+        #self._collection_list = self.zot.all_collections()
         for collection in self._collection_list:
             zcol = ZCollection(self.zot, collection)
             self._zcollection_list.append(zcol)
@@ -46,19 +50,21 @@ class ZWrapper():
             self.print_tree_helper(zcol, 0)
     
     def print_tree_helper(self, zcol, level):
-        print(" "*level, zcol._collection['data']['name'])
-        for child in zcol.children:
+        print(" "*level, zcol._collection['data']['name'], zcol._collection['data']['key'])
+        for child in zcol.child_collections:
             self.print_tree_helper(child, level+1)
 
 class ZCollection():
     def __init__(self, zot, collection):
         self.zot = zot
         self._collection = collection
-        self.children = []
+        self.child_collections = []
+        self.child_items = []
+        self.item_tree = []
         self.parent = None
     
-    def addChild(self, child):
-        self.children.append(child)
+    def addChildCollection(self, child):
+        self.child_collections.append(child)
         child.setParent(self)
     
     def setParent(self, parent):
@@ -67,15 +73,47 @@ class ZCollection():
     def get_parent(self):
         return self.parent
 
+    def read_items(self):
+        items = self.zot.collection_items(self._collection['data']['key'])
+        for item in items:
+            child_item = ZItem(self.zot, item)
+            self.child_items.append(child_item)
+
+        for zitem in self.child_items:
+            if 'parentItem' not in zitem._item['data']:
+                self.item_tree.append(zitem)
+            else:
+                for parent in self.child_items:
+                    if parent._item['data']['key'] == zitem._item['data']['parentItem']:
+                        parent.add_child_item(zitem)
+                        break
+
+    def print_items(self):
+        for zitem in self.item_tree:
+            if zitem._item['data']['itemType'] == 'attachment':
+                print("  -",zitem._item)
+            else:
+                print(zitem._item)
+                #print(zitem._item['data']['key'], zitem._item['data']['version'], zitem._item['data']['itemType'], zitem._item['data']['title'])
+
+    def print_item_tree(self):
+        for zitem in self.item_tree:
+            self.print_tree_helper(zitem, 0)
+    
+    def print_tree_helper(self, zitem, level):
+        print(" "*level, zitem._item['data']['title'], zitem._item['data']['key'])
+        for child in zitem.child_item_list:
+            self.print_tree_helper(child, level+1)
+
 class ZItem():
-    def __init__(self, zot, item_id = None):
+    def __init__(self, zot, item):
         self.zot = zot
-        if item_id:
-            self._item = self.zot.item(item_id)
-    def get_collection(self, collection_id):
-        return self.zot.collection(collection_id)
+        self._item = item
+        self.child_item_list = []
 
-
+    def add_child_item(self, zitem):
+        self.child_item_list.append(zitem)
+        
 client = OpenAI()
 def get_or_create_assistant( asst_name ):
     asst_list = client.beta.assistants.list( order="desc", limit="20", )
@@ -106,3 +144,10 @@ def get_or_create_thread( thread_id = 'thread_cZLk7hjIlsR1uhGYttIAG2T9' ):
 z = ZWrapper()
 z.build_tree()
 z.print_tree()
+zcol = z.get_collection('M5EN26AJ')
+if zcol:
+    zcol.read_items()
+    #zcol.print_items()
+    zcol.print_item_tree()
+    #for item in zcol.item_tree:
+    #    print(item._item['data']['key'])
