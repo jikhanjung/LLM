@@ -6,6 +6,20 @@ import os
 
 load_dotenv()
 
+import requests
+
+# disable ssl warning
+requests.packages.urllib3.disable_warnings()
+
+# override the methods which you use
+requests.post = lambda url, **kwargs: requests.request(
+    method="POST", url=url, verify=False, **kwargs
+)
+
+requests.get = lambda url, **kwargs: requests.request(
+    method="GET", url=url, verify=False, **kwargs
+)
+
 zotero_api_key = os.environ.get("ZOTERO_API_KEY")
 zotero_user_id = os.environ.get("ZOTERO_USER_ID")
 zot = zotero.Zotero(zotero_user_id, 'user', zotero_api_key)
