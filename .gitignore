@@ -1,5 +1,6 @@
 .env
 pdfs/*
-Zotero.db
 *.pyc
-Zotero.db-journal
+*.db-journal
+*.db
+*.txt

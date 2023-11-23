@@ -19,8 +19,72 @@ class ZWrapper():
         self._zcollection_tree = []
         self._zcollection_hash = {}
 
-    def build_database(self):
-        self._collection_list = self.zot.all_collections()
+    def pull_database(self):
+        last_version = LastVersion.get_or_create(id=1)[0]
+        new_max_version = prev_max_version = last_version.version
+        print("last_version:", prev_max_version)
+        collection_list = self.zot.collections(since=prev_max_version)
+        print("collection count:", len(collection_list))
+        for collection in collection_list:
+            key = collection['data']['key']
+            print("collection:", key, collection['data'])
+            colcache = CollectionCache.get_or_create(key=key)[0]
+            if colcache.version < prev_max_version:
+                colcache.data = json.dumps(collection['data'])
+                colcache.version = int(collection['data']['version'])
+                if colcache.version > new_max_version:
+                    new_max_version = colcache.version
+                if 'parentCollection' in collection['data'] and collection['data']['parentCollection'] != False:
+                    parent_colcache = CollectionCache.get_or_create(key=collection['data']['parentCollection'])[0]
+                    colcache.parent = parent_colcache
+                colcache.save()
+
+        items_list = self.zot.items(key,since=prev_max_version)
+        print("  item count:", len(items_list))
+        for item in items_list:
+            item_key = item['data']['key']
+            print("  item:", item_key)
+            itemcache = ItemCache.get_or_create(key=item_key)[0]
+            if itemcache.version < prev_max_version:
+                itemcache.data = json.dumps(item['data'])
+                itemcache.version = int(item['data']['version'])
+                if itemcache.version > new_max_version:
+                    new_max_version = itemcache.version               
+                    
+                if 'parentItem' in item['data'] and item['data']['parentItem'] != False:
+                    parent_itemcache = ItemCache.get_or_create(key=item['data']['parentItem'])[0]
+                    if( parent_itemcache.version == 0 ):
+                        parent_item = self.zot.item(item['data']['parentItem'])
+                        parent_itemcache.data = json.dumps(parent_item['data'])
+                        parent_itemcache.version = int(parent_item['data']['version'])
+                        parent_itemcache.collection = colcache
+                        parent_itemcache.save()
+                    itemcache.parent = parent_itemcache
+                itemcache.save()
+
+                prev_colkey_list = list(CollectionItemRel.select('key').where(CollectionItemRel.item==itemcache))
+
+                # if 
+                collection_list = item['data']['collections'] 
+                for collection_key in collection_list:
+                    if collection_key in prev_colkey_list:
+                        prev_colkey_list.remove(collection_key)
+                    colcache = CollectionCache.get_or_create(key=collection_key)[0]
+                    colitemrel = CollectionItemRel.get_or_create(collection=colcache,item=itemcache)[0]
+                    colitemrel.save()
+                for colkey in prev_colkey_list:
+                    colcache = CollectionCache.get_or_create(key=colkey)[0]
+                    colitemrel = CollectionItemRel.get_or_create(collection=colcache,item=itemcache)[0]
+                    colitemrel.delete_instance()
+
+        last_version.version = new_max_version
+        last_version.save()
+
+    def build_database(self,collection_key = None):
+        if collection_key:
+            self._collection_list = [self.zot.collection(collection_key)]
+        else:
+            self._collection_list = self.zot.all_collections()
         print("collection count:", len(self._collection_list))
         max_version = 0
         for collection in self._collection_list:
@@ -36,23 +100,37 @@ class ZWrapper():
                 colcache.parent = parent_colcache
             colcache.save()
 
-            items_list = self.zot.collection_items(key)
+            items_list = self.zot.collection_items(key,since=0)
+            print("  item count:", len(items_list))
             max_item_version = 0
             for item in items_list:
                 item_key = item['data']['key']
                 print("  item:", item_key)
                 itemcache = ItemCache.get_or_create(key=item_key)[0]
+                print("    itemcache:", itemcache.key, itemcache.version, item['data']['version'])
                 itemcache.data = json.dumps(item['data'])
                 itemcache.version = int(item['data']['version'])
                 if itemcache.version > max_version:
                     max_version = itemcache.version
                 if itemcache.version > max_item_version:
                     max_item_version = itemcache.version
-                itemcache.collection = colcache
+                #itemcache.collection = colcache
                 if 'parentItem' in item['data'] and item['data']['parentItem'] != False:
                     parent_itemcache = ItemCache.get_or_create(key=item['data']['parentItem'])[0]
+                    if( parent_itemcache.version == 0 ):
+                        parent_item = self.zot.item(item['data']['parentItem'])
+                        parent_itemcache.data = json.dumps(parent_item['data'])
+                        parent_itemcache.version = int(parent_item['data']['version'])
+                        parent_itemcache.collection = colcache
+                        parent_itemcache.save()
+                        parent_colitemrel = CollectionItemRel.get_or_create(collection=colcache,item=parent_itemcache)[0]
+                        parent_colitemrel.save()
+                    print("    parent_itemcache:", parent_itemcache.key, parent_itemcache.version, item['data']['version'])
                     itemcache.parent = parent_itemcache
+                print("    itemcache:", itemcache.key, itemcache.version, item['data']['version'])
                 itemcache.save()
+                colitemrel = CollectionItemRel.get_or_create(collection=colcache,item=itemcache)[0]
+                colitemrel.save()
             colcache.max_item_version = max_item_version
             colcache.save()
             last_version = LastVersion.get_or_create(id=1)[0]
@@ -104,7 +182,13 @@ class ItemCache(Model):
     version = IntegerField(default=0)
     data = TextField(null=True)
     parent = ForeignKeyField('self', null=True,backref='children')
-    collection = ForeignKeyField(CollectionCache, null=True,backref='items')
+    #collection = ForeignKeyField(CollectionCache, null=True,backref='items')
+    class Meta:
+        database = gDatabase
+
+class CollectionItemRel(Model):
+    collection = ForeignKeyField(CollectionCache, backref='items')
+    item = ForeignKeyField(ItemCache, backref='collections')
     class Meta:
         database = gDatabase
 

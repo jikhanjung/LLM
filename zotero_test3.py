@@ -1,5 +1,5 @@
 from dotenv import load_dotenv # pip install python-dotenv
-from ZWrapper import ZWrapper, gDatabase, CollectionCache, ItemCache, LastVersion
+from ZWrapper import ZWrapper, gDatabase, CollectionCache, ItemCache, LastVersion, CollectionItemRel
 import requests
 
 
@@ -24,7 +24,7 @@ def check_db():
         return
         print(tables)
     else:
-        gDatabase.create_tables([CollectionCache, ItemCache, LastVersion,])
+        gDatabase.create_tables([CollectionCache, ItemCache, CollectionItemRel, LastVersion,])
 
 
 if __name__ == '__main__':
@@ -32,4 +32,5 @@ if __name__ == '__main__':
     check_db()
 
     z = ZWrapper()
+    #z.build_database('Q9KRVRM3')
     z.build_database()
