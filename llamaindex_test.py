@@ -59,7 +59,7 @@ def prepare_data_directory(collection_key, data_directory):
 if __name__ == '__main__':
     # get collection key input from user
     collection_key = input("Enter collection key: ")
-    data_directory = './' + collection_key
+    data_directory = './pdfs/' + collection_key
     if not os.path.exists(data_directory):
         os.makedirs(data_directory)
     prepare_data_directory(collection_key, data_directory)
