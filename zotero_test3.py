@@ -33,4 +33,5 @@ if __name__ == '__main__':
 
     z = ZWrapper()
     #z.build_database('Q9KRVRM3')
-    z.build_database()
+    #z.build_database()
+    z.pull_database()
