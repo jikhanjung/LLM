@@ -21,7 +21,7 @@ class ZWrapper():
 
     def pull_database(self):
         last_version = LastVersion.get_or_create(id=1)[0]
-        new_max_version = prev_max_version = last_version.version
+        new_max_version = prev_max_version = last_version.version#13636#
         print("last_version:", prev_max_version)
         collection_list = self.zot.collections(since=prev_max_version)
         print("collection count:", len(collection_list))
@@ -87,7 +87,32 @@ class ZWrapper():
                     colcache = CollectionCache.get_or_create(key=colkey)[0]
                     colitemrel = CollectionItemRel.get_or_create(collection=colcache,item=itemcache)[0]
                     colitemrel.delete_instance()
+
+        deleted_list = self.zot.deleted(since=prev_max_version)
+        print("  deleted:", prev_max_version, len(deleted_list), deleted_list)
+        if len(deleted_list['collections']) > 0:
+            for colkey in deleted_list['collections']:
+                print("deleted collection:", colkey)
+                colcache = CollectionCache.get_or_create(key=colkey)[0]
+                print("  deleted colcache:", colcache.key, colcache.version)
+                colitemrel_list = CollectionItemRel.select().where(CollectionItemRel.collection==colcache)
+                for colitemrel in colitemrel_list:
+                    print("  deleted colitemrel:", colitemrel.collection.key, colitemrel.item.key)
+                    colitemrel.delete_instance()
+                colcache.delete_instance()
+        if len(deleted_list['items']) > 0:
+            for itemkey in deleted_list['items']:
+                print("deleted item:", itemkey)
+                itemcache = ItemCache.get_or_create(key=itemkey)[0]
+                colitemrel_list = CollectionItemRel.select().where(CollectionItemRel.item==itemcache)
+                for colitemrel in colitemrel_list:
+                    print("  deleted colitemrel:", colitemrel.collection.key, colitemrel.item.key)
+                    colitemrel.delete_instance()
+                itemcache.delete_instance()
+
         print("new_max_version:", new_max_version)
+
+
         last_version.version = new_max_version
         last_version.save()
 
