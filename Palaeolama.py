@@ -11,15 +11,15 @@ from peewee import *
 from PIL.ExifTags import TAGS
 import shutil
 import copy
-import PlUtils as pl
+import PlUtils as pu
 
 
 
 class PalaeolamaMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowIcon(QIcon(pl.resource_path('icons/Palaeolama.png')))
-        self.setWindowTitle("{} v{}".format(self.tr("Palaeolama"), pl.PROGRAM_VERSION))
+        self.setWindowIcon(QIcon(pu.resource_path('icons/Palaeolama.png')))
+        self.setWindowTitle("{} v{}".format(self.tr("Palaeolama"), pu.PROGRAM_VERSION))
 
 if __name__ == "__main__":
     #QApplication : 프로그램을 실행시켜주는 클래스
@@ -29,12 +29,12 @@ if __name__ == "__main__":
     #    f.write("current directory 1:" + os.getcwd() + "\n")
     #    f.write("current directory 2:" + os.path.abspath(".") + "\n")
     app = QApplication(sys.argv)
-    app.setWindowIcon(QIcon(pl.resource_path('icons/Palaeolama.png')))
-    app.settings = QSettings(QSettings.IniFormat, QSettings.UserScope,pl.COMPANY_NAME, pl.PROGRAM_NAME)
+    app.setWindowIcon(QIcon(pu.resource_path('icons/Palaeolama.png')))
+    app.settings = QSettings(QSettings.IniFormat, QSettings.UserScope,pu.COMPANY_NAME, pu.PROGRAM_NAME)
 
     translator = QTranslator()
     app.language = app.settings.value("language", "en")
-    translator.load(pl.resource_path("translations/Palaeolama_{}.qm".format(app.language)))
+    translator.load(pu.resource_path("translations/Palaeolama_{}.qm".format(app.language)))
     app.installTranslator(translator)
 
     myWindow = PalaeolamaMainWindow()
