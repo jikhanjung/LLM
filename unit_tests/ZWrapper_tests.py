@@ -2,9 +2,24 @@ import unittest
 import os
 from unittest.mock import patch, MagicMock
 from ZWrapper import ZWrapper
+from dotenv import load_dotenv
+import requests
+
+# disable ssl warning
+requests.packages.urllib3.disable_warnings()
+
+# override the methods which you use
+requests.post = lambda url, **kwargs: requests.request(
+    method="POST", url=url, verify=False, **kwargs
+)
+
+requests.get = lambda url, **kwargs: requests.request(
+    method="GET", url=url, verify=False, **kwargs
+)
 
 class TestZWrapper(unittest.TestCase):
     def setUp(self):
+        load_dotenv()
         self.zwrapper = ZWrapper()
 
     @patch('ZWrapper.zotero.Zotero')
